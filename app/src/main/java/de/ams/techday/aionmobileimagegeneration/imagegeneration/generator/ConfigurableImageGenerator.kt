@@ -17,7 +17,7 @@ class ConfigurableImageGenerator @Inject constructor(
     // use hilt once it works
     private lateinit var imageGenerator: ImageGenerator
 
-    fun initializeGenerator(modelPath: Path) {
+    suspend fun initializeGenerator(modelPath: Path) {
         val options = ImageGeneratorOptions.builder()
             .setImageGeneratorModelDirectory(modelPath)
             .build()
@@ -26,7 +26,7 @@ class ConfigurableImageGenerator @Inject constructor(
 
     fun setInput(prompt: Prompt, iteration: Iteration, seed: Seed) {
         // pass the desired input prompt to the generator
-//        imageGenerator.setInputs(prompt, iteration, seed)
+        imageGenerator.setInputs(prompt, iteration, seed)
     }
 
     val width = 256

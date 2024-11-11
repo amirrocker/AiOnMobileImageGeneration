@@ -1,33 +1,26 @@
 package de.ams.techday.aionmobileimagegeneration.imagegeneration.presentation
 
-import android.content.Context
+//import com.google.mediapipe.tasks.vision.imagegenerator.ImageGenerator
 import android.graphics.Bitmap
-import android.os.Handler
-import android.os.Looper
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-//import com.google.mediapipe.tasks.vision.imagegenerator.ImageGenerator
-import dagger.hilt.android.lifecycle.HiltViewModel
 import de.ams.techday.aionmobileimagegeneration.imagegeneration.generator.ConfigurableImageGenerator
-import de.ams.techday.aionmobileimagegeneration.imagegeneration.generator.Iteration
-import de.ams.techday.aionmobileimagegeneration.imagegeneration.generator.Prompt
-import de.ams.techday.aionmobileimagegeneration.imagegeneration.generator.Seed
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import kotlin.system.measureTimeMillis
-
 
 
 class ImageGeneratorViewModel(
     private var helper: ConfigurableImageGenerator? = null
 ) : ViewModel() {
+
     private val _uiState = MutableStateFlow(UiState())
-    val uiState: StateFlow<UiState> = _uiState
+    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
     private val MODEL_PATH = "/data/local/tmp/image_generator/bins/"
 
     fun updateDisplayIteration(displayIteration: Int) {
@@ -73,7 +66,8 @@ class ImageGeneratorViewModel(
             }
 
             _uiState.update { it.copy(isInitializing = true) }
-            viewModelScope.launch {
+            viewModelScope.launch(Dispatchers.IO) {
+                delay(500)
                 val startTime = System.currentTimeMillis()
                 helper?.initializeGenerator(MODEL_PATH)
                     _uiState.update {
@@ -95,16 +89,11 @@ class ImageGeneratorViewModel(
         }
     }
 
-    // Create image generation helper
-    fun createImageGenerationHelper(context: Context) {
-        helper = ConfigurableImageGenerator(context)
-    }
-
     fun generateImage() {
         val prompt = _uiState.value.prompt
         val iteration = _uiState.value.iteration
         val seed = _uiState.value.seed
-        val displayIteration = _uiState.value.displayIteration ?: 0
+        val displayIteration = _uiState.value.displayIteration
         var isDisplayStep = false
 
         if (prompt.isEmpty()) {
@@ -127,9 +116,15 @@ class ImageGeneratorViewModel(
         }
 
         // Generate with iterations
-        viewModelScope.launch(Dispatchers.Main) {
+        viewModelScope.launch(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
             // if display option is final, use generate method, else use execute method
+
+            _uiState.update { it.copy(
+                isGenerating = true,
+                generatingMessage = "Generating Image. Please wait .... "
+            ) }
+            delay(500)
             if (uiState.value.displayOptions == DisplayOptions.FINAL) {
                 val result = helper?.generate(prompt, iteration, seed)
                 _uiState.update {
